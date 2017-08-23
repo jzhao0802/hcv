@@ -4,25 +4,31 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(mlr)
+library(palabmod)
 ```
 
-## R Markdown
+Set up the data paths and load the positive and negative data that are post stratification. The training data are loaded first; the positive training data represents 80% of the complete positive cohort and the negative cohort 
+```{r}
+data_path <- "Z:/"
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+pos <- readr::read_csv(file.path(data_path, "pos_cohort_20170315/poscoh_80perc_consumer_v1.csv"))
+neg <- readr::read_csv(file.path(data_path, "neg_cohort_20170328/negcoh_perc80_20170320.csv"))
+var_config <- readr::read_csv(file.path(data_path, "pos_cohort_20170315/Gilead_var_config2.csv"))
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```
+Strip ids and matching variable. Subset cohorts to relevant modelling variables. 
+```{r}
+pos_id <- utils_get_ids(pos, var_config)
+neg_id <- utils_get_ids(neg, var_config)
+pos <- utils_get_variables(pos,var_config)
+neg <- utils_get_variables(neg,var_config)
+extra_cols <- setdiff(colnames(neg),colnames(pos))
 ```
 
-## Including Plots
+```{r}
+data <- rbind(pos,neg)
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

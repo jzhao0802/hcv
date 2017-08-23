@@ -1,0 +1,49 @@
+---
+title: "LR"
+output: html_document
+author: "Orla Doyle - PA Team, London"
+---
+Set up packages. 
+```{r}
+library(mlr)
+library(parallel)
+library(parallelMap)
+library(ggplot2)
+library(palabmod)
+```
+
+Set up paths and load the data. 
+```{r}
+path = "F:/orla/HCV_manuscript/"
+setwd(path)
+data_tr <- readRDS(file.path(path, "01_data/gilead_train_pos_neg.rds"))
+```
+
+Set up matching and remove ids from data frame. 
+```{r}
+matches <- as.factor(data_tr$test_patient_id)
+data_tr$test_patient_id <- NULL
+ids <- data_tr$Patient_Id
+data_tr$Patient_Id <- NULL
+```
+
+#Missing data
+Set missing values to zero. ACHTUNG: this should be reviewed. 
+```{r}
+data_tr[is.na(data.tr)]=0
+```
+
+Define MLR compatible dataset. 
+```{r}
+target = "label"
+dataset_tr <- makeClassifTask(id="hcv", data=data_tr, target=target, 
+                              positive=1, blocking=matches)
+
+```
+
+Define the learner and fit it to the training data. 
+```{r}
+lr <- makeLearner("classif.logreg", predict.type = "prob", predict.threshold = 0.5)
+lr.fit <- train(lr, dataset_tr)
+```
+
