@@ -18,7 +18,7 @@ Set up paths and load the data and var_config file.
 path = "F:/orla/HCV_manuscript/"
 source(file.path(path, "02_code/utils.R"))
 data_tr <- readRDS(file.path(path, "01_data/gilead_train_pos_neg.rds"))
-var_config <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_flags.csv"))
+var_config <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_counts_freq.csv"))
 ```
 
 Set up matching, pull ids and variables that should go forward for modelling. 
@@ -57,7 +57,7 @@ Define the learner and fit it to the training data.
 ```{r}
 lr <- makeLearner("classif.logreg", predict.type = "prob", predict.threshold = 0.5)
 lr.fit <- train(lr, dataset_tr)
-saveRDS(lr.fit, file.path(path,"03_results/LR/LR_HCV_flags_1_50.rds"))
+saveRDS(lr.fit, file.path(path,"03_results/LR/LR_HCV_counts_freq_1_50.rds"))
 ```
 Load first set of hold out data and set up matching variable and selection modelling variables. 
 ```{r}

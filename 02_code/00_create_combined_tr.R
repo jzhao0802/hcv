@@ -1,4 +1,4 @@
-library(palab)
+#library(palab)
 library(dplyr)
 library(stringr)
 
@@ -45,7 +45,7 @@ pos_all <- pos_all %>%
     CLAIM_COUNT_OF_HCV_DIAGNOSIS = NA,
     CLAIM_COUNT_OF_ANY_HCV_TREATMENT = NA,
     CLAIM_COUNT_OF_ONLY_HCV_INDICATED_TREATMENT = NA,
-    test_patient_id = NA
+    test_patient_id = Patient_Id
   ) 
 
 

@@ -1,0 +1,72 @@
+---
+title: "Descriptive table"
+output: html_document
+author: "Orla Doyle - PA Team, London"
+---
+Set up packages. 
+```{r}
+library(tidyverse)
+```
+
+#Training cohort
+Compute basic descriptive stats for the training cohort. 
+
+Set up paths and load the data and var_config file. 
+```{r}
+path = "F:/orla/HCV_manuscript/"
+setwd(path)
+data_tr <- readRDS(file.path(path, "01_data/gilead_train_pos_neg.rds"))
+```
+
+Set up structure of results file. 
+
+```{r}
+res_tr <- data.frame(matrix(ncol=3, nrow=6))
+colnames(res_tr) <- c("Variable", "HCV", "non-HCV")
+```
+
+#Compute descriptive statistics
+
+Counts
+```{r}
+res_tr[1,1] <- "Patient counts"
+res_tr[1,2] <- sum(data_tr$label==1)
+res_tr[1,3] <- sum(data_tr$label==0)
+```
+
+Age
+```{r}
+res_tr[2,1] <- "Age"
+res_tr[2,2] <- paste0(round(mean(data_tr$PATIENT_AGE[data_tr$label==1]),2), "+/-" ,round(sd(data_tr$PATIENT_AGE[data_tr$label==1]),2))
+res_tr[2,3] <- paste0(round(mean(data_tr$PATIENT_AGE[data_tr$label==0]),2), "+/-" ,round(sd(data_tr$PATIENT_AGE[data_tr$label==0]),2))
+```
+
+Gender
+```{r}
+res_tr[3,1] <- "Gender"
+res_tr[3,2] <- paste0(round(100*(sum(data_tr$PAT_GENDER_CD[data_tr$label==1] == "M")/sum(data_tr$label==1)),0), "% M, ", round(100*(sum(data_tr$PAT_GENDER_CD[data_tr$label==1] == "F")/sum(data_tr$label==1)),0), "% F" )
+res_tr[3,3] <- paste0(round(100*(sum(data_tr$PAT_GENDER_CD[data_tr$label==0] == "M")/sum(data_tr$label==0)),0), "% M, ", round(100*(sum(data_tr$PAT_GENDER_CD[data_tr$label==0] == "F")/sum(data_tr$label==0)),0), "% F" )
+```
+
+
+Treated
+```{r}
+res_tr[4,1] <- "Treated for HCV"
+res_tr[4,2] <- paste0(round(100*sum(data_tr$TREAT_FOR_HCV[data_tr$label==1])/sum(data_tr$label==1),1), "%")
+res_tr[4,3] <- "0.0%"
+```
+
+
+HIV/AIDS Dx
+```{r}
+res_tr[5,1] <- "Diagnosed with HIV or AIDS"
+res_tr[5,2] <- paste0(round(100*sum(data_tr$HIV_AIDS_DX_flag[data_tr$label==1])/sum(data_tr$label==1),1), "%")
+res_tr[5,3] <- paste0(round(100*sum(data_tr$HIV_AIDS_DX_flag[data_tr$label==0])/sum(data_tr$label==0),1), "%")
+```
+
+HIV/AIDS Dx
+```{r}
+res_tr[6,1] <- "History of IV drug use"
+res_tr[6,2] <- paste0(round(100*sum(data_tr$IV_DRUG_USE_DX_flag[data_tr$label==1])/sum(data_tr$label==1),1), "%")
+res_tr[6,3] <- paste0(round(100*sum(data_tr$IV_DRUG_USE_DX_flag[data_tr$label==0])/sum(data_tr$label==0),1), "%")
+```

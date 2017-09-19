@@ -55,9 +55,10 @@ dataset_tr <- makeClassifTask(id="hcv", data=data_tr, target=target,
 
 Define the learner and fit it to the training data. 
 ```{r}
-lr <- makeLearner("classif.logreg", predict.type = "prob", predict.threshold = 0.5)
-lr.fit <- train(lr, dataset_tr)
-saveRDS(lr.fit, file.path(path,"03_results/LR/LR_HCV_flags_1_50.rds"))
+#lr <- makeLearner("classif.logreg", predict.type = "prob", predict.threshold = 0.5)
+#lr.fit <- train(lr, dataset_tr)
+#saveRDS(lr.fit, file.path(path,"03_results/LR/LR_HCV_flags_1_50.rds"))
+lr.fit <- readRDS(file.path(path,"03_results/LR/LR_HCV_flags_1_50.rds"))
 ```
 Load first set of hold out data and set up matching variable and selection modelling variables. 
 ```{r}
@@ -76,4 +77,5 @@ Apply the model to the test data.
 ```{r}
 pred_ts <- predict(lr.fit, dataset_ts)
 pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
+plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
 ```

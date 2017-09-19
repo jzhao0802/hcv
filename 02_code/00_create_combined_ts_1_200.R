@@ -48,7 +48,7 @@ pos_all <- pos_all %>%
     test_patient_id = NA
   ) 
 
-
+pos_all$test_patient_id <- pos_all$Patient_Id
 
 # ----------------------------------------------------------------------------
 # read in negative cohort
@@ -64,21 +64,22 @@ rr <- readr::read_csv(file.path(data_path, "neg_cohort_20170328/negcoh_perc20_20
 rr <- rr %>%
   rename(
     Patient_Id = control_patient_id,
+    PATIENT_AGE = `PATIENT_AGE.`,
     DX_FLAG = dx_flag,
     LRX_FLAG = lrx_flag,
     COUNT_OF_TX_PROC_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK_FACTORS = `COUNT_OF_TX_PROC_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK.FACTORS`,
     COUNT_OF_TX_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK_FACTORS = `COUNT_OF_TX_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK.FACTORS`,
     CLAIM_COUNT_OF_TX_PROC_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK_FACTORS = `CLAIM_COUNT_OF_TX_PROC_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK.FACTORS`,
-    CLAIM_COUNT_OF_TX_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK_FACTORS = `CLAIM_COUNT_OF_TX_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK.FACTORS`
-    VIRAL_HEPATITIS__NON_C__DX_flag = `VIRAL_HEPATITIS_(NON_C)_DX_flag`,
-    VIRAL_HEPATITIS__NON_C__DX_claims_count = `VIRAL_HEPATITIS_(NON_C)_DX_claims_count`,
-    VIRAL_HEPATITIS__NON_C__DX_ave_claims_count = `VIRAL_HEPATITIS_(NON_C)_DX_ave_claims_count`,
-    VIRAL_HEPATITIS__NON_C__DX_first_expdt = `VIRAL_HEPATITIS_(NON_C)_DX_first_expdt`
+    CLAIM_COUNT_OF_TX_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK_FACTORS = `CLAIM_COUNT_OF_TX_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK.FACTORS`,
+    VIRAL_HEPATITIS__NON_C__DX_flag = `VIRAL_HEPATITIS_.NON_C._DX_flag`,
+    VIRAL_HEPATITIS__NON_C__DX_claims_count = `VIRAL_HEPATITIS_.NON_C._DX_claims_count`,
+    VIRAL_HEPATITIS__NON_C__DX_ave_claims_count = `VIRAL_HEPATITIS_.NON_C._DX_ave_claims_count`,
+    VIRAL_HEPATITIS__NON_C__DX_first_expdt = `VIRAL_HEPATITIS_.NON_C._DX_first_expdt`
   )
 rr <- rr %>%
   mutate(
     label = 0L,
-    TREAT_FOR_HCV = NA
+    TREAT_FOR_HCV = 0
   )
 
 #split the positive cohort into two hold out partitions
@@ -91,11 +92,15 @@ pos_all_1 <- pos_all[ix_split1,]
 pos_all_2 <- pos_all[ix_split2,]
 
 
+#downsample rr to 1 to 200 matches
+rr<- rr %>% group_by(test_patient_id) %>% sample_n(.,200)
+
+
 #pos_all_1 <- pos_all_1 %>% rename(test_patient_id = Patient_Id)
-#pos_match_1 <- pos_all_1 %>% select(test_patient_id) 
-pos_match_1 <- pos_all_1 %>% select(test_patient_id) %>% rename(test_patient_id = Patient_Id)
+#pos_match_1 <- pos_all_1 %>% select(test_patient_id)
+pos_match_1 <- pos_all_1 %>% select(test_patient_id) 
 rr_match_1<- merge(rr, pos_match_1, by = "test_patient_id", all.y = TRUE)
-pos_all_1 <- pos_all_1 %>% rename(test_patient_id = Patient_Id)
+
 # ----------------------------------------------------------------------------
 # Set training pos and training negative together
 # ----------------------------------------------------------------------------
@@ -121,11 +126,13 @@ gilead_test1 <- rbind(
 saveRDS(gilead_test1, "F:/orla/HCV_manuscript/01_data/gilead_holdout1_pos_neg.rds")
 #write.csv(common_cols, "F:/Projects/Gilead/data/combined_20170320/gilead_test3_var_config.csv")
 
-
+#clear some memory
+gilead_test1 <- NULL
+rr_match_1<- NULL
 # Select only those matched to the remaining positve patients
-pos_match_2 <- pos_all_2 %>% select(test_patient_id) %>% rename(test_patient_id = Patient_Id)
+pos_match_2 <- pos_all_2 %>% select(test_patient_id) 
 rr_match_2<- merge(rr, pos_match_2, by = "test_patient_id", all.y = TRUE)
-pos_all_2 <- pos_all_2 %>% rename(test_patient_id = Patient_Id)
+
 # ----------------------------------------------------------------------------
 # Set training pos and training negative together
 # ----------------------------------------------------------------------------
