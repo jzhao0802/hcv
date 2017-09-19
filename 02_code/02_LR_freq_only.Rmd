@@ -41,7 +41,7 @@ Set missing values to zero.
 # data_tmp[is.na(data_tmp)] = 0
 # data_tr[, vars] = data_tmp
 
-#data_tr[is.na(data_tr)] <- 0
+data_tr[is.na(data_tr)] <- 0
 
 ```
 
@@ -76,4 +76,28 @@ Apply the model to the test data.
 ```{r}
 pred_ts <- predict(lr.fit, dataset_ts)
 pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
+plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
+write.csv(pr_grpl$curve, file.path(path,"03_results/LR/PR_LR_HCV_counts_freq_1_50.rds"))
+```
+Extract the coefficients of the LR model. 
+```{r}
+lr.coef <-  as.data.frame(lr.fit$learner.model$coefficients)
+write.csv(lr.coef, paste0(path, "03_results/LR/coef_LR_HCV_counts_freq_1_50.csv"))
+```
+
+Apply model only to treated test cases. 
+```{r}
+# data_ts <- readRDS(file.path(path, "01_data/gilead_holdout1_pos_neg.rds"))
+# pos_ts_tx <- data_ts[data_ts$TREAT_FOR_HCV == 1,]
+# data_ts_tx <- data_ts  %>% filter(test_patient_id %in% pos_ts_tx$Patient_Id)
+# 
+# ts_tx_matches <- as.factor(data_ts_tx$test_patient_id)
+# #ids <- utils_get_ids(data_ts, var_config)
+# data_ts_tx <- utils_get_variables(data_ts_tx, var_config, categorical = TRUE)
+# data_ts_tx$label <- as.factor(data_ts_tx$label)
+# dataset_ts_tx <- makeClassifTask(id="hcv_ts", data=data_ts_tx, target="label",
+#                                  positive=1, blocking=ts_tx_matches)
+# pred_ts_tx <- predict(lr.fit, dataset_ts_tx)
+# pr_grpl_tx <- perf_binned_perf_curve(pred_ts_tx, 20,"rec", "prec")
+# plot(pr_grpl_tx$curve$rec_binned, pr_grpl_tx$curve$prec)
 ```

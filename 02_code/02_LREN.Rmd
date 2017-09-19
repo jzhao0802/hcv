@@ -55,9 +55,10 @@ dataset_tr <- makeClassifTask(id="hcv", data=data_tr, target=target,
 
 Define the learner and fit it to the training data. 
 ```{r}
-lr <- makeLearner("classif.logreg", predict.type = "prob", predict.threshold = 0.5)
-lr.fit <- train(lr, dataset_tr)
-saveRDS(lr.fit, file.path(path,"03_results/LR/LR_HCV_flags_1_50.rds"))
+lren <- makeLearner("classif.glmnet", predict.type = "prob", predict.threshold = 0.5)
+lren.fit <- train(lren, dataset_tr)
+max_lambda <- max(lren.fit$learner.model$lambda)
+saveRDS(lren.fit, file.path(path,"03_results/LR/LR_HCV_flags_1_50.rds"))
 ```
 Load first set of hold out data and set up matching variable and selection modelling variables. 
 ```{r}

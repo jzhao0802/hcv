@@ -18,7 +18,7 @@ Set up paths and load the data and var_config file.
 path = "F:/orla/HCV_manuscript/"
 source(file.path(path, "02_code/utils.R"))
 data_tr <- readRDS(file.path(path, "01_data/gilead_train_pos_neg.rds"))
-var_config <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_flags.csv"))
+var_config <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_counts_freq.csv"))
 ```
 
 Set up matching, pull ids and variables that should go forward for modelling. 
@@ -27,7 +27,8 @@ data_tr$test_patient_id[data_tr$label==1] <- data_tr$Patient_Id[data_tr$label==1
 matches <- as.factor(data_tr$test_patient_id)
 ids <- utils_get_ids(data_tr, var_config)
 data_tr <- utils_get_variables(data_tr, var_config, categorical = TRUE)
-data_tr$label <- as.factor(data_tr$label)
+data_tr$label <- (data_tr$label)
+data_tr$PAT_GENDER_CD = as.numeric(data_tr$PAT_GENDER_CD)-1
 ```
 
 #Missing data
@@ -41,7 +42,7 @@ Set missing values to zero.
 # data_tmp[is.na(data_tmp)] = 0
 # data_tr[, vars] = data_tmp
 
-#data_tr[is.na(data_tr)] <- 0
+data_tr[is.na(data_tr)] <- 0
 
 ```
 
@@ -55,9 +56,15 @@ dataset_tr <- makeClassifTask(id="hcv", data=data_tr, target=target,
 
 Define the learner and fit it to the training data. 
 ```{r}
-lr <- makeLearner("classif.logreg", predict.type = "prob", predict.threshold = 0.5)
-lr.fit <- train(lr, dataset_tr)
-saveRDS(lr.fit, file.path(path,"03_results/LR/LR_HCV_flags_1_50_tmp.rds"))
+xgb <- makeLearner("classif.xgboost", predict.type="prob")
+xgb$par.vals = list(
+  nrounds = 50,
+  verbose = F,
+  objective = "binary:logistic"
+)
+
+xgb.fit <- train(xgb, dataset_tr)
+saveRDS(xgb.fit , file.path(path,"03_results/xgboost/xgb_HCV_counts_freq_1_50.rds"))
 #lr.fit <- readRDS(file.path(path,"03_results/LR/LR_HCV_flags_1_50.rds"))
 ```
 Load first set of hold out data and set up matching variable and selection modelling variables. 
@@ -75,13 +82,15 @@ dataset_ts <- makeClassifTask(id="hcv_ts", data=data_ts, target="label",
 ```
 Apply the model to the test data. 
 ```{r}
-pred_ts <- predict(lr.fit, dataset_ts)
+pred_ts <- predict(xgb.fit, dataset_ts)
 pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
 plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
-write.csv(pr_grpl$curve, file.path(path,"03_results/LR/PR_LR_HCV_flags_1_50.rds"))
+write.csv(pr_grpl$curve, file.path(path,"03_results/xgboost/PR_xgb_HCV_counts_freq_1_50.rds"))
 ```
-Extract the coefficients of the LR model. 
+
+Get variable importance table
 ```{r}
-lr.coef <-  as.data.frame(lr.fit$learner.model$coefficients)
-write.csv(lr.coef, paste0(path, "03_results/LR/coef_LR_HCV_flags_1_50.csv"))
+#vi = results_vi_table(xgb.fit, dataset_ts)
+vi <- xgboost::xgb.importance(feature_names=colnames(data_tr), model=xgb.fit$learner.model)
+write.csv(vi, paste0(path, "03_results/LR/VI_xgb_HCV_counts_counts_freq_1_50.csv"))
 ```
