@@ -59,7 +59,7 @@ Define the learner and fit it to the training data.
 xgb <- makeLearner("classif.xgboost", predict.type="prob")
 xgb$par.vals = list(
   nrounds = 50,
-  verbose = F,
+  verbose = T,
   objective = "binary:logistic"
 )
 
@@ -67,6 +67,13 @@ xgb.fit <- train(xgb, dataset_tr)
 saveRDS(xgb.fit , file.path(path,"03_results/xgboost/xgb_HCV_counts_freq_1_50.rds"))
 #lr.fit <- readRDS(file.path(path,"03_results/LR/LR_HCV_flags_1_50.rds"))
 ```
+
+Apply model to the trainig data
+```{r}
+pred_tr <- predict(xgb.fit, dataset_tr)
+write.csv(as.data.frame(pred_tr), file.path(path,"03_results/xgboost/predictions_tr_xgb_HCV_counts_freq_1_50.csv"))
+```
+
 Load first set of hold out data and set up matching variable and selection modelling variables. 
 ```{r}
 data_ts <- readRDS(file.path(path, "01_data/gilead_holdout1_pos_neg.rds"))
@@ -83,9 +90,10 @@ dataset_ts <- makeClassifTask(id="hcv_ts", data=data_ts, target="label",
 Apply the model to the test data. 
 ```{r}
 pred_ts <- predict(xgb.fit, dataset_ts)
+write.csv(as.data.frame(pred_ts), file.path(path,"03_results/xgboost/predictions_xgb_HCV_counts_freq_1_50.csv"))
 pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
 plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
-write.csv(pr_grpl$curve, file.path(path,"03_results/xgboost/PR_xgb_HCV_counts_freq_1_50.rds"))
+write.csv(pr_grpl$curve, file.path(path,"03_results/xgboost/PR_xgb_HCV_counts_freq_1_50.csv"))
 ```
 
 Get variable importance table

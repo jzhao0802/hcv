@@ -56,20 +56,12 @@ dataset_tr <- makeClassifTask(id="hcv", data=data_tr, target=target,
 Define the learner and fit it to the training data. 
 ```{r}
 rf <- makeLearner("classif.ranger", predict.type="prob")
-rf <- setHyperPars(rf, importance="impurity")
+rf <- setHyperPars(rf, importance="impurity", num.trees = 100, verbose=TRUE)
 
 rf.fit <- train(rf, dataset_tr)
-saveRDS(rf.fit, file.path(path,"03_results/rf/rf_HCV_counts_freq_1_50.rds"))
+saveRDS(rf.fit, file.path(path,"03_results/rf/rf_prelim_HCV_counts_freq_1_50.rds"))
 #lr.fit <- readRDS(file.path(path,"03_results/LR/LR_HCV_flags_1_50.rds"))
 ```
-
-Apply model to the trainig data
-```{r}
-pred_tr <- predict(rf.fit, dataset_tr)
-write.csv(as.data.frame(pred_tr), file.path(path,"03_results/rf/predictions_tr_rf_HCV_counts_freq_1_50.csv"))
-```
-
-
 Load first set of hold out data and set up matching variable and selection modelling variables. 
 ```{r}
 data_ts <- readRDS(file.path(path, "01_data/gilead_holdout1_pos_neg.rds"))
@@ -87,13 +79,14 @@ dataset_ts <- makeClassifTask(id="hcv_ts", data=data_ts, target="label",
 Apply the model to the test data. 
 ```{r}
 pred_ts <- predict(rf.fit, dataset_ts)
+write.csv(as.data.frame(pred_ts), file.path(path,"03_results/rf/predictions_rf_prelim_HCV_counts_freq_1_50.csv"))
 pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
 plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
-write.csv(pr_grpl$curve, file.path(path,"03_results/rf/PR_rf_HCV_counts_freq_1_50.rds"))
+write.csv(pr_grpl$curve, file.path(path,"03_results/rf/PR_rf_prelim_HCV_counts_freq_1_50.rds"))
 ```
 Get variable importance table
 ```{r}
-vi = results_vi_table(xgb.fit, dataset_ts)
-#vi <- xgboost::xgb.importance(feature_names=colnames(data_tr), model=rf.fit$learner.model)
-#write.csv(vi, paste0(path, "03_results/LR/VI_rf_HCV_counts_flags_freq_1_50.csv"))
+#vi = results_vi_table(xgb.fit, dataset_ts)
+vi <- xgboost::xgb.importance(feature_names=colnames(data_tr), model=rf.fit$learner.model)
+write.csv(vi, paste0(path, "03_results/LR/VI_rf_prelim_HCV_counts_flags_freq_1_50.csv"))
 ```
