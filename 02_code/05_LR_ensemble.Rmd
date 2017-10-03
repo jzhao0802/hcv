@@ -1,0 +1,89 @@
+---
+title: "LR"
+output: html_document
+author: "Orla Doyle - PA Team, London"
+---
+Set up packages. 
+```{r}
+library(tidyverse)
+library(mlr)
+library(parallel)
+library(parallelMap)
+library(ggplot2)
+library(palabmod)
+```
+
+Set up paths and load the data and var_config file. 
+```{r}
+path = "F:/orla/HCV_manuscript/"
+source(file.path(path, "02_code/utils.R"))
+data_tr <- readRDS(file.path(path, "/01_data/ensemble_lr_rf_xgb_tr.rds"))
+var_config <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_ensemble.csv"))
+```
+
+Set up matching, pull ids and variables that should go forward for modelling. 
+```{r}
+data_tr$test_patient_id[data_tr$label==1] <- data_tr$Patient_Id[data_tr$label==1]
+matches <- as.factor(data_tr$test_patient_id)
+ids <- utils_get_ids(data_tr, var_config)
+data_tr <- utils_get_variables(data_tr, var_config, categorical = TRUE)
+data_tr$label <- as.factor(data_tr$label)
+```
+
+#Missing data
+Set missing values to zero. 
+```{r}
+# vars = c("COUNT_OF_TX_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK_FACTORS",
+#  "CLAIM_COUNT_OF_TX_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK_FACTORS",
+#  "COUNT_OF_TX_PROC_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK_FACTORS",
+#  "CLAIM_COUNT_OF_TX_PROC_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK_FACTORS")
+# data_tmp = data_tr[, vars]
+# data_tmp[is.na(data_tmp)] = 0
+# data_tr[, vars] = data_tmp
+
+data_tr[is.na(data_tr)] <- 0
+
+```
+
+Define MLR compatible dataset. 
+```{r}
+target = "label"
+dataset_tr <- makeClassifTask(id="hcv", data=data_tr, target=target, 
+                              positive=1, blocking=matches)
+
+```
+
+Define the learner and fit it to the training data. 
+```{r}
+lr <- makeLearner("classif.logreg", predict.type = "prob", predict.threshold = 0.5)
+lr.fit <- train(lr, dataset_tr)
+saveRDS(lr.fit, file.path(path,"03_results/LR/final/LR_HCV_counts_flags_freq_1_50.rds"))
+```
+
+Apply the model to the test data. 
+```{r}
+pred_tr <- predict(lr.fit, dataset_tr)
+write.csv(as.data.frame(pred_tr), file.path(path,"03_results/LR/final/predictions_tr_lr_HCV_counts_flags_freq_1_50.csv"))
+```
+Load first set of hold out data and set up matching variable and selection modelling variables. 
+```{r}
+data_ts <- readRDS(file.path(path, "01_data/gilead_holdout1_pos_neg.rds"))
+ts_matches <- as.factor(data_ts$test_patient_id)
+#ids <- utils_get_ids(data_ts, var_config)
+data_ts <- utils_get_variables(data_ts, var_config, categorical = TRUE)
+data_ts$label <- as.factor(data_ts$label)
+data_ts[is.na(data_ts)] <- 0
+```
+Make MLR data object from test data. 
+```{r}
+dataset_ts <- makeClassifTask(id="hcv_ts", data=data_ts, target="label",
+                                 positive=1, blocking=ts_matches)
+```
+Apply the model to the test data. 
+```{r}
+pred_ts <- predict(lr.fit, dataset_ts)
+write.csv(as.data.frame(pred_ts), file.path(path,"03_results/LR/final/predictions_ts_lr_HCV_counts_flags_freq_1_50.csv"))
+pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
+plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
+write.csv(pr_grpl$curve, file.path(path,"03_results/LR/final/PR_LR_HCV_counts_flags_freq_1_50.rds"))
+```
