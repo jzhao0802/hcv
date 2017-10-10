@@ -60,7 +60,7 @@ rf <- setHyperPars(rf, importance="impurity")
 
 rf.fit <- train(rf, dataset_tr)
 saveRDS(rf.fit, file.path(path,"03_results/rf/rf_HCV_counts_freq_1_50.rds"))
-#lr.fit <- readRDS(file.path(path,"03_results/LR/LR_HCV_flags_1_50.rds"))
+#rf.fit <- readRDS(file.path(path,"03_results/rf/rf_HCV_counts_freq_1_50.rds"))
 ```
 
 Apply model to the trainig data
@@ -76,6 +76,7 @@ data_ts <- readRDS(file.path(path, "01_data/gilead_holdout1_pos_neg.rds"))
 ts_matches <- as.factor(data_ts$test_patient_id)
 #ids <- utils_get_ids(data_ts, var_config)
 data_ts <- utils_get_variables(data_ts, var_config, categorical = TRUE)
+data_ts$PAT_GENDER_CD = as.numeric(data_ts$PAT_GENDER_CD) - 1 
 data_ts$label <- as.factor(data_ts$label)
 data_ts[is.na(data_ts)] <- 0
 ```
@@ -87,13 +88,32 @@ dataset_ts <- makeClassifTask(id="hcv_ts", data=data_ts, target="label",
 Apply the model to the test data. 
 ```{r}
 pred_ts <- predict(rf.fit, dataset_ts)
+write.csv(as.data.frame(pred_ts), file.path(path,"03_results/rf/predictions_ts_rf_HCV_counts_freq_1_50.csv"))
 pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
 plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
 write.csv(pr_grpl$curve, file.path(path,"03_results/rf/PR_rf_HCV_counts_freq_1_50.rds"))
 ```
-Get variable importance table
+
+Load second set of hold out data and set up matching variable and selection modelling variables. 
 ```{r}
-vi = results_vi_table(xgb.fit, dataset_ts)
-#vi <- xgboost::xgb.importance(feature_names=colnames(data_tr), model=rf.fit$learner.model)
-#write.csv(vi, paste0(path, "03_results/LR/VI_rf_HCV_counts_flags_freq_1_50.csv"))
+data_ts <- readRDS(file.path(path, "01_data/gilead_holdout2_pos_neg.rds"))
+ts_matches <- as.factor(data_ts$test_patient_id)
+ids_ts <- utils_get_ids(data_ts, var_config)
+data_ts <- utils_get_variables(data_ts, var_config, categorical = TRUE)
+data_ts$PAT_GENDER_CD = as.numeric(data_ts$PAT_GENDER_CD) - 1
+data_ts$label <- as.factor(data_ts$label)
+data_ts[is.na(data_ts)] <- 0
+```
+Make MLR data object from test data. 
+```{r}
+dataset_ts <- makeClassifTask(id="hcv_ts", data=data_ts, target="label",
+                                 positive=1, blocking=ts_matches)
+```
+Apply the model to the test data. 
+```{r}
+pred_ts <- predict(rf.fit, dataset_ts)
+write.csv(as.data.frame(pred_ts), file.path(path,"03_results/rf/predictions_ts_rf_HCV_counts_freq_1_50_2.csv"))
+pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
+plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
+write.csv(pr_grpl$curve, file.path(path,"03_results/rf/PR_rf_HCV_counts_freq_1_50_2.rds"))
 ```

@@ -34,7 +34,8 @@ pos_all <- pos_all %>%
     PEPTIC_ULCER_DISEASE_GE_REFLUX_NDC_claims_count = PEPTIC.ULCER.DISEASE_GE.REFLUX_NDC_claims_count ,
     PEPTIC_ULCER_DISEASE_GE_REFLUX_NDC_ave_claims_count = PEPTIC.ULCER.DISEASE_GE.REFLUX_NDC_ave_claims_count ,
     PEPTIC_ULCER_DISEASE_GE_REFLUX_NDC_first_expdt = PEPTIC.ULCER.DISEASE_GE.REFLUX_NDC_first_expdt,
-    OVERALL_COUNT_OF_PREDICTORS = historic_pred_count
+    OVERALL_COUNT_OF_PREDICTORS = historic_pred_count,
+    index_date = FIRST_HCV_Expo_Date
   )
 pos_all <- pos_all %>%
   mutate(
@@ -54,7 +55,7 @@ pos_all$test_patient_id <- pos_all$Patient_Id
 # read in negative cohort
 # ----------------------------------------------------------------------------
 
-rr <- readr::read_csv(file.path(data_path, "neg_cohort_20170328/negcoh_perc20_20170320.csv"), col_types = cols(test_patient_id = col_double(),control_patient_id = col_double() ))
+rr <- read.csv(file.path(data_path, "neg_cohort_20170328/negcoh_perc20_20170320.csv"))
 #rr <- readr::read_rds(file.path(data_path, "neg_cohort_20170320/negcoh_perc20_20170320_renamed.rds"))
 #saveRDS(rr, str_c(data_loc, "negcoh_perc80_20170320_renamed.rds"))
 #rr <- readRDS(str_c(data_loc, "negcoh_perc80_20170320_renamed.rds"))
@@ -63,8 +64,8 @@ rr <- readr::read_csv(file.path(data_path, "neg_cohort_20170328/negcoh_perc20_20
 
 rr <- rr %>%
   rename(
+    PATIENT_AGE= PATIENT_AGE.,
     Patient_Id = control_patient_id,
-    PATIENT_AGE = `PATIENT_AGE.`,
     DX_FLAG = dx_flag,
     LRX_FLAG = lrx_flag,
     COUNT_OF_TX_PROC_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK_FACTORS = `COUNT_OF_TX_PROC_FOR_MISDIAGNOSIS_COMORBIDITIES_SYMPTOMS_RISK.FACTORS`,

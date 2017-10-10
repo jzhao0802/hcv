@@ -74,3 +74,33 @@ perf_binned_perf_curve <- function(pred, bin_num = 20, x_metric = "rec",
   colnames(curve_df) <- c(paste(x_metric, "_binned", sep=""), y_metric, "thresh")
   return(list(curve=curve_df, auc=auc))
 }
+
+
+date_format <- function(input_data, date_pattern) {
+  date_data <- dplyr::select(input_data, dplyr::contains(date_pattern))
+  formatted <- lapply(date_data, mdy)
+  df_date <- as.data.frame(formatted)
+  df <- data.frame(df_date)
+  return(df)
+}
+
+date_format_dmy <- function(input_data, date_pattern) {
+  date_data <- dplyr::select(input_data, dplyr::contains(date_pattern))
+  formatted <- lapply(date_data, dmy)
+  df_date <- as.data.frame(formatted)
+  df <- data.frame(df_date)
+  return(df)
+}
+
+create_date_diffs <- function(input, index_col = "index_date") {
+  
+  date_cols <- input[, -which(colnames(input) == index_col)]
+  
+  date_diffs <- as.data.frame(sapply(date_cols, function(x) { 
+    input[[index_col]] - x
+    
+  }))
+  
+  return(date_diffs)
+}
+

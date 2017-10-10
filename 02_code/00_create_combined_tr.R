@@ -1,5 +1,5 @@
 #library(palab)
-library(dplyr)
+library(tidyverse)
 library(stringr)
 
 # ----------------------------------------------------------------------------
@@ -34,7 +34,8 @@ pos_all <- pos_all %>%
     PEPTIC_ULCER_DISEASE_GE_REFLUX_NDC_claims_count = PEPTIC.ULCER.DISEASE_GE.REFLUX_NDC_claims_count ,
     PEPTIC_ULCER_DISEASE_GE_REFLUX_NDC_ave_claims_count = PEPTIC.ULCER.DISEASE_GE.REFLUX_NDC_ave_claims_count ,
     PEPTIC_ULCER_DISEASE_GE_REFLUX_NDC_first_expdt = PEPTIC.ULCER.DISEASE_GE.REFLUX_NDC_first_expdt,
-    OVERALL_COUNT_OF_PREDICTORS = historic_pred_count
+    OVERALL_COUNT_OF_PREDICTORS = historic_pred_count,
+    index_date = FIRST_HCV_Expo_Date
   )
 pos_all <- pos_all %>%
   mutate(

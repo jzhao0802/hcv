@@ -1,0 +1,48 @@
+---
+title: "Date Difference Variables 
+"
+output: html_document
+author: "Orla Doyle - PA Team, London"
+---
+Set up packages. 
+```{r}
+library(tidyverse)
+library(mlr)
+library(parallel)
+library(parallelMap)
+library(ggplot2)
+library(palabmod)
+library(lubridate)
+```
+
+Load training data
+```{r}
+path = "F:/orla/HCV_manuscript/"
+source(file.path(path, "02_code/utils.R"))
+data_tr <- readRDS(file.path(path, "01_data/gilead_train_pos_neg.rds"))
+pos_all <- data_tr[(data_tr$label==1),]
+data_tr<-NULL
+pos_ts <- readRDS(file.path(path, "01_data/gilead_pos_ts.rds"))
+pos_all <- rbind(pos_all,pos_ts)
+```
+
+
+```{r}
+formatted_dates <- date_format_dmy(input_data = pos_all,  date_pattern = "first_expdt")
+formatted_dates$index_date <- dmy(pos_all$index_date)
+date_diffs <- create_date_diffs(input = formatted_dates, index_col = "index_date")
+date_diffs <- as.data.frame(as.matrix(date_diffs))
+date_diffs <- cbind(pos_all$Patient_Id, date_diffs)
+write_csv(date_diffs, path = file.path(path, "03_results/date_diffs/dd_pos_all.csv"))
+```
+
+```{r}
+pos_gil <- pos_all[pos_all$TREAT_FOR_HCV==1,]
+formatted_dates_gil <- date_format_dmy(input_data = pos_gil,date_pattern = "first_expdt")
+formatted_dates_gil$index_date <- dmy(pos_gil$index_date)
+date_diffs_gil <- create_date_diffs(input = formatted_dates_gil, index_col = "index_date")
+date_diffs_gil <- as.data.frame(as.matrix(date_diffs_gil))
+date_diffs_gil <- cbind(pos_gil$Patient_Id, date_diffs_gil)
+write_csv(date_diffs_gil, path = file.path(path, "03_results/date_diffs/dd_pos_tr_gil.csv"))
+
+```

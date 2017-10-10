@@ -1,0 +1,55 @@
+---
+title: "bivar_stats"
+output: html_document
+---
+
+Set up libraries
+```{r}
+setwd("F:/orla/palab")
+#install.packages("palab", repos = NULL, type  = "source")
+library(palab)
+path = "F:/orla/HCV_manuscript/"
+```
+
+Read in the training data
+
+```{r}
+transformed_df <- read_transform(
+  input_csv = file.path(path, "01_data/gilead_train_pos_neg.csv"),
+  var_config_csv = file.path(path, "01_data/meta_data/hcv_varconfig_counts_flags_freq.csv"),
+  missing_values = "-99, -999",
+  read_key_as_double = TRUE
+)
+```
+
+
+```{r}
+
+bivar_flag_df <- bivar_stats_y_flag(input = transformed_mtcars$data,
+                                    var_config = file.path(path, "01_data/meta_data/hcv_varconfig_counts_flags_freq.csv"),
+                                    outcome_var = "label")
+write_csv(bivar_flag_df, path=file.path(path,"03_results/descriptive_stats/bivar_flag_df_tr.csv" ))
+```
+
+
+
+Read in the training data
+
+```{r}
+transformed_df <- read_transform(
+  input_csv = file.path(path, "01_data/gilead_holdout1_pos_neg.csv"),
+  var_config_csv = file.path(path, "01_data/meta_data/hcv_varconfig_counts_flags_freq.csv"),
+  missing_values = "-99, -999",
+  read_key_as_double = TRUE
+)
+```
+
+
+
+```{r}
+
+bivar_flag_df <- bivar_stats_y_flag(input = transformed_df$data,
+                                    var_config = file.path(path, "01_data/meta_data/hcv_varconfig_counts_flags_freq.csv"),
+                                    outcome_var = "label")
+write_csv(bivar_flag_df, path=file.path(path,"03_results/descriptive_stats/bivar_flag_df_ts.csv" ))
+```

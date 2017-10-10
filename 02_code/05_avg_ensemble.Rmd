@@ -1,0 +1,60 @@
+---
+title: "xgb"
+output: html_document
+author: "Orla Doyle - PA Team, London"
+---
+Set up packages. 
+```{r}
+library(tidyverse)
+library(mlr)
+library(parallel)
+library(parallelMap)
+library(ggplot2)
+library(palabmod)
+```
+
+Set up paths and load the data and var_config file. 
+```{r}
+path = "F:/orla/HCV_manuscript/"
+source(file.path(path, "02_code/utils.R"))
+
+var_config <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_ensemble.csv"))
+
+data_ts <- readRDS(file.path(path, "01_data/ensemble_lr_rf_xgb_ho2.rds"))
+ts_matches <- as.factor(data_ts$test_patient_id)
+#ids <- utils_get_ids(data_ts, var_config)
+data_ts <- utils_get_variables(data_ts, var_config, categorical = TRUE)
+data_ts$label <- as.factor(data_ts$label)
+data_ts[is.na(data_ts)] <- 0
+```
+
+Get average predictions
+```{r}
+# pred_ts <- data_ts %>%
+#   mutate(.,pred_ensem = rowMeans(select(.,starts_with("pred")))) %>%
+#   select(label,pred_ensem)
+# pred_ts <- data_ts %>%
+#   mutate(.,pred_ensem = rowMeans(select(.,starts_with("pred")))) %>%
+#   select(label,pred_ensem)
+
+pred_ensem <- apply(data_ts[,2:4], 1, median)
+pred_ensem <- as.data.frame(pred_ensem)
+pred_ts <- (cbind(data_ts$label, pred_ensem))
+pred_ts <- pred_ts %>% rename(label=`data_ts$label`)
+# pred_ts <- data_ts %>%
+#   select(label, pred_XGB) %>% 
+#   rename(pred_ensem = pred_XGB)
+```
+
+
+```{r}
+x_metric <- "rec"
+y_metric <- "prec"
+curve_df <- get_curve(pred_ts$pred_ensem, pred_ts$label, x_metric, y_metric)
+curve_df <- bin_curve(curve_df, 20)
+# prepare df that we return
+curve_df <- as.data.frame(curve_df[, c("x_binned", "y", "thresh")])
+colnames(curve_df) <- c(paste(x_metric, "_binned", sep = ""), y_metric, "thresh")
+plot(curve_df$rec_binned, curve_df$prec)
+write.csv(curve_df, file.path(path,"03_results/ensemble/PR_HCV_median_1_50_ho2.csv"))
+```
