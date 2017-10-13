@@ -21,7 +21,7 @@ source(file.path(path, "02_code/utils.R"))
 var_config <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_ensemble.csv"))
 
 data_ts <- readRDS(file.path(path, "01_data/ensemble_lr_rf_xgb_ho2.rds"))
-ts_matches <- as.factor(data_ts$test_patient_id)
+#ts_matches <- as.factor(data_ts$test_patient_id)
 #ids <- utils_get_ids(data_ts, var_config)
 data_ts <- utils_get_variables(data_ts, var_config, categorical = TRUE)
 data_ts$label <- as.factor(data_ts$label)
@@ -57,4 +57,12 @@ curve_df <- as.data.frame(curve_df[, c("x_binned", "y", "thresh")])
 colnames(curve_df) <- c(paste(x_metric, "_binned", sep = ""), y_metric, "thresh")
 plot(curve_df$rec_binned, curve_df$prec)
 write.csv(curve_df, file.path(path,"03_results/ensemble/PR_HCV_median_1_50_ho2.csv"))
+```
+```{r}
+curve_df <- get_curve(pred_ts_LR$prob.1, pred_ts_LR$truth, x_metric, y_metric)
+curve_df <- bin_curve(curve_df, 20)
+# prepare df that we return
+curve_df <- as.data.frame(curve_df[, c("x_binned", "y", "thresh")])
+colnames(curve_df) <- c(paste(x_metric, "_binned", sep = ""), y_metric, "thresh")
+plot(curve_df$rec_binned, curve_df$prec)
 ```

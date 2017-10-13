@@ -1,0 +1,114 @@
+---
+title: "05_ensemble_VI"
+output: html_document
+---
+
+Set up packages. 
+```{r}
+library(tidyverse)
+library(mlr)
+library(parallel)
+library(parallelMap)
+library(ggplot2)
+library(palabmod)
+```
+```{r}
+path = "F:/orla/HCV_manuscript/"
+```
+
+```{r}
+var_config <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_ensemble.csv"))
+var_config <- var_config %>% 
+  filter(((Type == "categorical") | (Type == "numerical")) & (Column != "label")) %>% 
+  select(Column)
+
+ensem.xgb.fit <- readRDS(file.path(path,"03_results/ensemble/xgb_HCV_1_50_ho1.rds"))
+vi_ensem <- xgboost::xgb.importance(feature_names=var_config$Column, model=ensem.xgb.fit$learner.model)
+w_xgb <- vi_ensem$Gain[vi_ensem$Feature=="pred_XGB"]
+w_rf <- vi_ensem$Gain[vi_ensem$Feature=="pred_RF"]
+w_lr <- vi_ensem$Gain[vi_ensem$Feature=="pred_LR"]
+```
+
+Individual xgboost model VI
+```{r}
+var_config_xgb <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_counts_freq.csv"))
+var_config_xgb <- var_config_xgb %>% 
+  filter(((Type == "categorical") | (Type == "numerical")) & (Column != "label")) %>% 
+  select(Column)
+xgb.fit <- readRDS(file.path(path,"03_results/xgboost/xgb_HCV_counts_freq_1_50.rds"))
+vi_xgb <- xgboost::xgb.importance(feature_names=var_config_xgb$Column, model=xgb.fit$learner.model)
+vi_xgb$Cover <- NULL
+vi_xgb$Frequency <- NULL
+vi_xgb$rank_xgb[order(-vi_xgb$Gain)] <- 1:nrow(vi_xgb)
+```
+
+Individual random forest model VI
+```{r}
+rf.fit <- readRDS(file.path(path,"03_results/rf/rf_HCV_counts_freq_1_50.rds"))
+rf.fit.un <- getLearnerModel(rf.fit, more.unwrap = T)
+vi_rf <- as.data.frame(rf.fit.un$variable.importance)
+vi_rf <- rownames_to_column(vi_rf, "Feature")
+vi_rf <- vi_rf %>% rename(vi_rf = `rf.fit.un$variable.importance`)
+vi_rf$rank_rf[order(-vi_rf$vi_rf)] <- 1:nrow(vi_rf)
+```
+
+Individual LR model VI
+```{r}
+var_config_lr <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_counts_flags_freq.csv"))
+var_config_lr <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_counts_freq.csv"))
+var_config_lr <- var_config_lr %>% 
+  filter(((Type == "categorical") | (Type == "numerical")) & (Column != "label")) %>% 
+  select(Column)
+
+data_tr <- readRDS(file.path(path, "01_data/gilead_train_pos_neg.rds"))
+data_tr <- data_tr[,var_config_lr$Column]
+
+data_tr[is.na(data_tr)] <- 0 
+data_tr_range <- data_tr %>% 
+  select(-PAT_GENDER_CD) %>% 
+  summarise_a(funs(max,min))
+
+max_minus_min <- function(a){
+  r = max(a) - min(a)
+}
+
+data_tr_range <- data_tr %>% 
+  select(-PAT_GENDER_CD) %>% 
+  summarise_all(funs(max_minus_min)) %>% 
+  t() %>% 
+  as.data.frame()
+
+data_tr_range <- rownames_to_column(data_tr_range, "Feature")
+data_tr_range <- rbind(c("PAT_GENDER_CD", 0.5), data_tr_range)
+
+lr.fit<- readRDS(file.path(path,"03_results/LR/final/LR_HCV_counts_flags_freq_1_50.rds"))
+lr.fit.un <- getLearnerModel(lr.fit, more.unwrap = T)
+lr.or <- as.data.frame(coef(lr.fit.un))
+lr.or <- rownames_to_column(lr.or, "Feature")
+lr.or <- lr.or %>%  
+  filter((Feature != "(Intercept)") & (!grepl("_flag",Feature))) %>% 
+  rename(vi_lr = `coef(lr.fit.un)`)
+lr.or <- inner_join(lr.or,data_tr_range, by = "Feature")
+lr.or$vi_lr <- abs(round(lr.or$vi_lr,3))*as.numeric(lr.or$V1)
+lr.or$rank_lr[order(-lr.or$vi_lr)] <- 1:nrow(lr.or)
+#fix gender name
+lr.or$Feature[lr.or$Feature == "PAT_GENDER_CDM"] = "PAT_GENDER_CD"
+```
+Create weighted ranking
+```{r}
+all_vi <- left_join(vi_rf,lr.or, by ="Feature")
+all_vi <- left_join(all_vi, vi_xgb, by = "Feature")
+all_vi$rank_xgb[is.na(all_vi$rank_xgb)] <- nrow(vi_xgb)+1
+all_vi$final_rank <- (w_xgb*all_vi$rank_xgb + w_rf*all_vi$rank_rf + w_lr*all_vi$rank_lr)
+
+write_csv(all_vi, path = file.path(path, "03_results/ensemble/all_vi_xgb_ensem.csv"))
+```
+Create weighted ranking without LR 
+```{r}
+#all_vi <- left_join(vi_rf,lr.or, by ="Feature")
+all_vi <- left_join(vi_rf, vi_xgb, by = "Feature")
+all_vi$rank_xgb[is.na(all_vi$rank_xgb)] <- nrow(vi_xgb)+1
+all_vi$final_rank <- (w_xgb*all_vi$rank_xgb + w_rf*all_vi$rank_rf)
+
+write_csv(all_vi, path = file.path(path, "03_results/ensemble/all_vi_xgb_ensem_no_lr.csv"))
+```

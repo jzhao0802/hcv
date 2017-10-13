@@ -53,17 +53,24 @@ dataset_tr <- makeClassifTask(id="hcv", data=data_tr, target=target,
 
 ```
 
+
 Define the learner and fit it to the training data. 
 ```{r}
-lr <- makeLearner("classif.logreg", predict.type = "prob", predict.threshold = 0.5)
-lr.fit <- train(lr, dataset_tr)
-saveRDS(lr.fit, file.path(path,"03_results/ensemble/LR_HCV_1_50_ho1.rds"))
+xgb <- makeLearner("classif.xgboost", predict.type="prob")
+xgb$par.vals = list(
+  nrounds = 50,
+  verbose = T,
+  objective = "binary:logistic"
+)
+
+xgb.fit <- train(xgb, dataset_tr)
+saveRDS(xgb.fit , file.path(path,"03_results/ensemble/xgb_HCV_1_50_ho1.rds"))
 ```
 
 Apply the model to the test data. 
 ```{r}
-pred_tr <- predict(lr.fit, dataset_tr)
-write.csv(as.data.frame(pred_tr), file.path(path,"03_results/ensemble/predictions_ho1_lr_HCV_1_50.csv"))
+pred_tr <- predict(xgb.fit, dataset_tr)
+write.csv(as.data.frame(pred_tr), file.path(path,"03_results/ensemble/predictions_ho1_xgb_HCV_1_50.csv"))
 ```
 Load first set of hold out data and set up matching variable and selection modelling variables. 
 ```{r}
@@ -81,9 +88,13 @@ dataset_ts <- makeClassifTask(id="hcv_ts", data=data_ts, target="label",
 ```
 Apply the model to the test data. 
 ```{r}
-pred_ts <- predict(lr.fit, dataset_ts)
-write.csv(as.data.frame(pred_ts), file.path(path,"03_results/ensemble/predictions_ho2_lr_HCV_1_50.csv"))
+pred_ts <- predict(xgb.fit, dataset_ts)
+write.csv(as.data.frame(pred_ts), file.path(path,"03_results/ensemble/predictions_ho2_xgb_HCV_1_50.csv"))
 pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
 plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
-write.csv(pr_grpl$curve, file.path(path,"03_results/ensemble/PR_LR_HCV_1_50_ho2.rds"))
+write.csv(pr_grpl$curve, file.path(path,"03_results/ensemble/PR_xgb_HCV_1_50_ho2.csv"))
+```
+Get model weights
+```{r}
+
 ```
