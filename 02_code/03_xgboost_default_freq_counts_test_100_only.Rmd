@@ -1,0 +1,89 @@
+---
+title: "LR"
+output: html_document
+author: "Orla Doyle - PA Team, London"
+---
+Set up packages. 
+```{r}
+library(tidyverse)
+library(mlr)
+library(parallel)
+library(parallelMap)
+library(ggplot2)
+library(palabmod)
+```
+
+Set up paths and load the data and var_config file. 
+```{r}
+path = "F:/orla/HCV_manuscript/"
+source(file.path(path, "02_code/utils.R"))
+var_config <- read_csv(file.path(path, "01_data/meta_data/hcv_varconfig_counts_freq.csv"))
+```
+
+
+Load the trained learner.  
+```{r}
+xgb.fit <- readRDS(file.path(path,"03_results/xgboost/xgb_HCV_counts_freq_1_50.rds"))
+
+```
+
+
+Load first set of hold out data and set up matching variable and selection modelling variables. 
+```{r}
+data_ts <- readRDS(file.path(path, "01_data/gilead_holdout1_pos_neg_100.rds"))
+neg <- data_ts %>% filter(label==0)
+pos <- data_ts %>% filter(label==0)
+```
+
+```{r}
+data_ts$PAT_GENDER_CD = as.numeric(data_ts$PAT_GENDER_CD)-1
+ts_matches <- as.factor(data_ts$test_patient_id)
+#ids <- utils_get_ids(data_ts, var_config)
+data_ts <- utils_get_variables(data_ts, var_config, categorical = TRUE)
+data_ts$label <- as.factor(data_ts$label)
+data_ts[is.na(data_ts)]=0
+```
+Make MLR data object from test data. 
+```{r}
+dataset_ts <- makeClassifTask(id="hcv_ts", data=data_ts, target="label",
+                                 positive=1, blocking=ts_matches)
+```
+Apply the model to the test data. 
+```{r}
+pred_ts <- predict(xgb.fit, dataset_ts)
+write.csv(as.data.frame(pred_ts), file.path(path,"03_results/xgboost/predictions_ho1_100_xgb_HCV_counts_freq_1_50.csv"))
+pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
+plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
+write.csv(pr_grpl$curve, file.path(path,"03_results/xgboost/PR_ho1_100_xgb_HCV_counts_freq_1_50.csv"))
+```
+
+
+Load second set of hold out data and set up matching variable and selection modelling variables. 
+```{r}
+data_ts <- readRDS(file.path(path, "01_data/gilead_holdout2_pos_neg_100.rds"))
+data_ts$PAT_GENDER_CD = as.numeric(data_ts$PAT_GENDER_CD)-1
+ts_matches <- as.factor(data_ts$test_patient_id)
+#ids <- utils_get_ids(data_ts, var_config)
+data_ts <- utils_get_variables(data_ts, var_config, categorical = TRUE)
+data_ts$label <- as.factor(data_ts$label)
+```
+Make MLR data object from test data. 
+```{r}
+dataset_ts <- makeClassifTask(id="hcv_ts", data=data_ts, target="label",
+                                 positive=1, blocking=ts_matches)
+```
+Apply the model to the test data. 
+```{r}
+pred_ts <- predict(xgb.fit, dataset_ts)
+write.csv(as.data.frame(pred_ts), file.path(path,"03_results/xgboost/predictions_ho2_100_xgb_HCV_counts_freq_1_50.csv"))
+pr_grpl <- perf_binned_perf_curve(pred_ts, 20,"rec", "prec")
+plot(pr_grpl$curve$rec_binned, pr_grpl$curve$prec)
+write.csv(pr_grpl$curve, file.path(path,"03_results/xgboost/PR_ho2_100xgb_HCV_counts_freq_1_50.csv"))
+```
+
+Get variable importance table
+# ```{r}
+# #vi = results_vi_table(xgb.fit, dataset_ts)
+# vi <- xgboost::xgb.importance(feature_names=colnames(data_tr), model=xgb.fit$learner.model)
+# write.csv(vi, paste0(path, "03_results/LR/VI_xgb_HCV_counts_counts_freq_1_50.csv"))
+# ```

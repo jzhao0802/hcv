@@ -1,0 +1,49 @@
+---
+title: "Date Difference Variables 
+"
+output: html_document
+author: "Orla Doyle - PA Team, London"
+---
+Set up packages. 
+```{r}
+library(tidyverse)
+library(mlr)
+library(parallel)
+library(parallelMap)
+library(ggplot2)
+library(palabmod)
+library(lubridate)
+```
+
+Load training data
+```{r}
+path = "F:/orla/HCV_manuscript/"
+source(file.path(path, "02_code/utils.R"))
+data_tr <- readRDS(file.path(path, "01_data/gilead_train_pos_neg.rds"))
+#formatted_dates <- date_format_dmy(input_data = data_tr,  date_pattern = "first_expdt")
+date_data <- dplyr::select(data_tr, dplyr::contains("first_expdt"), -dplyr::contains("DIAGNOSED_HCV"), -dplyr::contains("TREATED"))
+formatted <- lapply(date_data, dmy)
+formatted_dates <- as.data.frame(formatted)
+formatted_dates$index_date <- dmy(data_tr$index_date)
+date_diffs <- create_date_diffs(input = formatted_dates, index_col = "index_date")
+date_diffs <- as.data.frame(as.matrix(date_diffs))
+date_diffs <- cbind(data_tr$Patient_Id, date_diffs)
+write_csv(date_diffs, path = file.path(path, "03_results/date_diffs/dd_tr.csv"))
+```
+
+Load training data
+```{r}
+path = "F:/orla/HCV_manuscript/"
+source(file.path(path, "02_code/utils.R"))
+data_tr <- readRDS(file.path(path, "01_data/gilead_train_pos_neg.rds"))
+#formatted_dates <- date_format_dmy(input_data = data_tr,  date_pattern = "first_expdt")
+date_data <- dplyr::select(data_tr, dplyr::contains("first_expdt"), -dplyr::contains("DIAGNOSED_HCV"), -dplyr::contains("TREATED"))
+formatted <- lapply(date_data, dmy)
+formatted_dates <- as.data.frame(formatted)
+formatted_dates$index_date <- dmy(data_tr$index_date)
+date_diffs <- create_date_diffs(input = formatted_dates, index_col = "index_date")
+date_diffs <- as.data.frame(as.matrix(date_diffs))
+date_diffs <- cbind(data_tr$Patient_Id, date_diffs)
+write_csv(date_diffs, path = file.path(path, "03_results/date_diffs/dd_tr.csv"))
+```
+

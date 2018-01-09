@@ -94,7 +94,7 @@ pos_all_2 <- pos_all[ix_split2,]
 
 
 #downsample rr to 1 to 200 matches
-rr<- rr %>% group_by(test_patient_id) %>% sample_n(.,200)
+rr<- rr %>% group_by(test_patient_id) %>% sample_n(.,100)
 
 
 #pos_all_1 <- pos_all_1 %>% rename(test_patient_id = Patient_Id)
@@ -124,7 +124,7 @@ gilead_test1 <- rbind(
   rr_match_1[common_cols]
 )
 
-saveRDS(gilead_test1, "F:/orla/HCV_manuscript/01_data/gilead_holdout1_pos_neg.rds")
+saveRDS(gilead_test1, "F:/orla/HCV_manuscript/01_data/gilead_holdout1_pos_neg_100.rds")
 #write.csv(common_cols, "F:/Projects/Gilead/data/combined_20170320/gilead_test3_var_config.csv")
 
 #clear some memory
@@ -156,5 +156,5 @@ gilead_test2 <- rbind(
   rr_match_2[common_cols]
 )
 
-saveRDS(gilead_test2, "F:/orla/HCV_manuscript/01_data/gilead_holdout2_pos_neg.rds")
+saveRDS(gilead_test2, "F:/orla/HCV_manuscript/01_data/gilead_holdout2_pos_neg_100.rds")
 #write.csv(common_cols, "F:/Projects/Gilead/data/combined_20170320/hcv_var_config.csv")
